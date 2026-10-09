@@ -1,0 +1,14 @@
+The .i file generates a MOOSE mesh for a basic 15x15 assembly cylindrical BWR core.
+It generates a mesh file called BWR_core_in.e, it should look exactly like the provided file called CoreMesh.e.
+
+Output example link: https://liveutk.sharepoint.com/:u:/r/sites/UT_StudentSpaceTechnologyAssociation/Shared%20Documents/SSTA%20General/!%20Project%20Teams%20(Rockets%20folder)/Nuclear%20NEP/Codes/Cardinal/Examples/BWR%20Core%20Mesh%20example/CoreMesh.e?d=wd07aa08cd5f946d6a8cd1c554284cf23&csf=1&web=1&e=zSHIbQ
+
+How to run this code:
+
+First get into the directory of our working file BWRcore.i from the SSTA-NEP head folder, to do that run this command:
+
+cd ./reactor_design/Cardinal/Mesh/BWRcore
+
+Then run this:
+
+cardinal-opt -i BWR_core.i --mesh-only

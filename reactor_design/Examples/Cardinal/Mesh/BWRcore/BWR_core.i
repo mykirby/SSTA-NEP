@@ -1,3 +1,29 @@
+#This is coded in the MOOSE framework to make a BWR-core mesh
+
+  #basic code form:
+
+  # Code is broken into generator blocks defined by sets of [] [], where the block name is put into the first block
+  # Each generator block has a type, inputs, and the output is itself
+  # Complex Meshes are created by chaining these generators together
+
+  # To reference the output of a block "block1" into another block "block2", it looks like so:
+  # [block1]
+  # []
+  # [block2]
+  # type = sometype
+  # input = block1
+  # []
+
+  #Most MOOSE basic mesh generators work in 2d only, so you create a 2D map of the reactor core, then extrude it into 3d
+
+  # is the comment syntax, there are no multi-line comments in MOOSE
+
+  #I will not explain what each thing does, just what I am accomplishing, or something interesting, read the MOOSE docs, found at the following link
+  # MOOSE docs: https://mooseframework.inl.gov/syntax/index.html
+
+
+#Before I define the mesh in [Mesh] block, I need to set all variables, as they must be set before making any mesh
+
 #Define all variables for the mesh
 
 #r1 is the half-width of cruciform rod
@@ -94,30 +120,6 @@ irad = '${fparse r6*16}'
 [Mesh]
   #When debugging, we can stop the code early using this line
   #final_generator = Core_final
-
-  #This is coded in the MOOSE framework to make a BWR-core mesh
-
-  #basic code form:
-
-  # Code is broken into generator blocks defined by sets of [] [], where the block name is put into the first block
-  # Each generator block has a type, inputs, and the output is itself
-  # Complex Meshes are created by chaining these generators together
-
-  # To reference the output of a block "block1" into another block "block2", it looks like so:
-  # [block1]
-  # []
-  # [block2]
-  # type = sometype
-  # input = block1
-  # []
-
-  #Most MOOSE basic mesh generators work in 2d only, so you create a 2D map of the reactor core, then extrude it into 3d
-
-  # is the comment syntax, there are no multi-line comments in MOOSE
-
-  #I will not explain what each thing does, just what I am accomplishing, or something interesting, read the MOOSE docs, found at the following link
-  # MOOSE docs: https://mooseframework.inl.gov/syntax/index.html
-
 
   ####### Begin generating 2d map
 

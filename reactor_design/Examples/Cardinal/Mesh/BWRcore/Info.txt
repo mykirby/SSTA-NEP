@@ -5,7 +5,7 @@ Output example link: https://liveutk.sharepoint.com/:u:/r/sites/UT_StudentSpaceT
 
 How to run this code:
 
-First get into this directory, from the SSTA-NEP head folder, run this command
+First get into the directory of our working file BWRcore.i from the SSTA-NEP head folder, to do that run this command:
 
 cd ./reactor_design/Cardinal/Mesh/BWRcore
 

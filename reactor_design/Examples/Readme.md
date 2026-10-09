@@ -2,7 +2,7 @@
 This is a folder storing code examples for different reactor design software
 ## What Goes Here
 ### 1. Helpful examples for concepts
-### 2. Examples of interesting applications of software
+### 2. Examples of interesting applications of software useful to the team
 ## What Good Examples Look Like
 ### 1. Well-explain, clear comments
 ### 2. Code is logically organized

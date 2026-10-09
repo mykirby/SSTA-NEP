@@ -15,7 +15,7 @@ This is a folder storing code examples for different reactor design software
 ## Format
 ### 1. Create a unique subfolder for each example
 ### 2. Place in the example input and output files
-  Be aware github has a 100mb file limit
+  Be aware github has a 100mb file limit, so you may need to add a link to the output instead
 ### 3. Insert a file called Info.txt in the folder
   a. Explain concisely what the example does \
   b. If any special instructions are needed to properly execute the example, note them in the file \

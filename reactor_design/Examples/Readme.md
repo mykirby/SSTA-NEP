@@ -21,7 +21,7 @@ Give the expected output, so people can see what it outputs without needing to t
   Example: Cardinal code goes in the cardinal folder
 ### 2. Then by component
   Example: Cardinal Mesh code goes in the Mesh folder inside the cardinal folder
-## Format
+## How to Format Examples
 ### 1. Create a unique subfolder for each example
 ### 2. Place in the example input and output files
   Be aware github has a 100mb file limit, so you may need to add a link to the output instead

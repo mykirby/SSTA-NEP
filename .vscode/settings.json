@@ -2,5 +2,6 @@
   "[moose]": {
     "outline.showProperties": false,
     "outline.showStrings": false
-  }
+  },
+  "gitdoc.enabled": true
 }

@@ -1,3 +1,5 @@
+#Define all variables for the mesh
+
 #r1 is the half-width of cruciform rod
 #r2 is the length of that rod total
 r1 = 1.5
@@ -80,15 +82,46 @@ double_dummy_added = '${fparse quad_sectors-1}'
 irad = '${fparse r6*16}'
 
 [Functions]
+  #Depreciated method of getting larger bundle size
   [ss]
+    # fn
     type = ParsedFunction
     expression = '8 * side'
     symbol_names = 'side'
-    symbol_values = ${r4} # MOOSE will evaluate this mathematically
+    symbol_values = ${r4}
   []
 []
 [Mesh]
+  #When debugging, we can stop the code early using this line
   #final_generator = Core_final
+
+  #This is coded in the MOOSE framework to make a BWR-core mesh
+
+  #basic code form:
+
+  # Code is broken into generator blocks defined by sets of [] [], where the block name is put into the first block
+  # Each generator block has a type, inputs, and the output is itself
+  # Complex Meshes are created by chaining these generators together
+
+  # To reference the output of a block "block1" into another block "block2", it looks like so:
+  # [block1]
+  # []
+  # [block2]
+  # type = sometype
+  # input = block1
+  # []
+
+  #Most MOOSE basic mesh generators work in 2d only, so you create a 2D map of the reactor core, then extrude it into 3d
+
+  # is the comment syntax, there are no multi-line comments in MOOSE
+
+  #I will not explain what each thing does, just what I am accomplishing, or something interesting, read the MOOSE docs, found at the following link
+  # MOOSE docs: https://mooseframework.inl.gov/syntax/index.html
+
+
+  ####### Begin generating 2d map
+
+  #Generates the Dummy pin for use in bundle mesh
   [Dummy_pin]
     type = CartesianConcentricCircleAdaptiveBoundaryMeshGenerator
     num_sectors_per_side = '${dummy_sectors} ${dummy_sectors} ${dummy_sectors} ${dummy_sectors}'
@@ -97,6 +130,10 @@ irad = '${fparse r6*16}'
     background_block_names = 'Dummy'
   []
 
+  ######## Begin Creating Control Rod Mesh
+
+
+  #Center of Rod
   [central_hub]
     type = GeneratedMeshGenerator
     dim = 2
@@ -110,6 +147,7 @@ irad = '${fparse r6*16}'
     subdomain_name = 'Control_Rod'
   []
 
+  #One horizontal blade
   [blade_horizontal]
     type = GeneratedMeshGenerator
     dim = 2
@@ -123,7 +161,7 @@ irad = '${fparse r6*16}'
     subdomain_name = 'Control_Rod'
   []
 
-  # 2. Rotate the horizontal blade by 90 degrees to make the vertical blade (Top arm)
+  # Rotate the horizontal blade by 90 degrees to make the vertical blade
   [blade_vertical]
     type = GeneratedMeshGenerator
     dim = 2
@@ -136,19 +174,25 @@ irad = '${fparse r6*16}'
     subdomain_ids = 3
     subdomain_name = 'Control_Rod'
   []
+
+  #Mirror the horizontal blade
   [blade_horizontal_flipped]
-    # Mirrors across both axes to complete the 4 arms
+
     type = SymmetryTransformGenerator
     input = blade_horizontal
     mirror_point = '0.0 0.0 0.0' # A point on the mirror plane/line
     mirror_normal_vector = '1.0 0.0 0.0' # Normal vector of the mirror plane (reflects across x=-y)
   []
+
+  #Reassign boundaries so the left and right are "correct"
   [blade_horizontal_cross]
     type = RenameBoundaryGenerator
     input = blade_horizontal_flipped
     new_boundary = 'left right'
     old_boundary = 'right left'
   []
+
+  #Mirror the vertical blade
   [blade_vertical_flipped]
     # Mirrors across both axes to complete the 4 arms
     type = SymmetryTransformGenerator
@@ -156,12 +200,16 @@ irad = '${fparse r6*16}'
     mirror_point = '0.0 0.0 0.0' # A point on the mirror plane/line
     mirror_normal_vector = '0.0 1.0 0.0' # Normal vector of the mirror plane (reflects across x=-y)
   []
+
+  #Reassign boundaries so the left and right are "correct"
   [blade_vertical_cross]
     type = RenameBoundaryGenerator
     input = blade_vertical_flipped
     new_boundary = 'top bottom'
     old_boundary = 'bottom top'
   []
+
+  #Combine the two horizontal blades and the central hub
   [blade_horizontal_combo]
     type = StitchMeshGenerator
     inputs = 'blade_horizontal_cross central_hub blade_horizontal'
@@ -170,7 +218,8 @@ irad = '${fparse r6*16}'
     merge_boundaries_with_same_name = true
     clear_stitched_boundary_ids = true
   []
-  # 4. Combine the two arms
+
+  #Combine the vertical blades and the previous assembly to get final control rod
   [cruciform_mesh]
     type = StitchMeshGenerator
     # setup
@@ -184,6 +233,10 @@ irad = '${fparse r6*16}'
     clear_stitched_boundary_ids = true
     #inputs = 'blade_horizontal_cross blade_vertical_cross'
   []
+
+  #Begin creating rest of fuel bundle
+
+  #Create fuel pin
   [Fuel_pin]
     type = CartesianConcentricCircleAdaptiveBoundaryMeshGenerator
     num_sectors_per_side = '4 4 4 4'
@@ -196,6 +249,8 @@ irad = '${fparse r6*16}'
     background_block_ids = 4
     background_block_names = 'water'
   []
+
+  #Create Water pin/Water Channel
   [Water_pin]
     type = PolygonConcentricCircleMeshGenerator
     num_sides = 4
@@ -212,7 +267,9 @@ irad = '${fparse r6*16}'
     background_block_names = 'water'
     quad_element_type = QUAD4
   []
-  #default is the top right
+
+  #Create one combined bundle mesh
+  #In a 4 fuel bundle assembly, this would be the top right bundle
   [Bundle_Mesh_gen]
     type = PatternedCartesianMeshGenerator
     inputs = 'Fuel_pin Water_pin'
@@ -228,20 +285,30 @@ irad = '${fparse r6*16}'
     background_block_id = 4
     background_block_name = 'water'
   []
+
+  #Begin some trickery to make parts of the bundle play nice
+
+  #Pull out the water section of the bundle
   [Bundle_meshw]
     type = BlockToMeshConverterGenerator
     input = Bundle_Mesh_gen
     target_blocks = '4'
   []
+
+  #Pull out the rest of the bundle mesh
   [Bundle_mesho]
     type = BlockToMeshConverterGenerator
     input = Bundle_Mesh_gen
     target_blocks = '1 2'
   []
+
+  #Convert the water section to TRI3 mesh elements so it will place nice with later sections
   [Bundle_meshwconv]
     type = ElementsToSimplicesConverter
     input = Bundle_meshw
   []
+
+  #Recombine the now TRI3 water and the other mesh sections
   [Bundle_Mesh_combined]
     type = CombinerGenerator
     inputs = 'Bundle_mesho Bundle_meshwconv'
@@ -253,35 +320,46 @@ irad = '${fparse r6*16}'
   #  paired_block = '2'
   #  new_boundary = 'fuel_cladding_boundary'
   #[]
+
+  #Redefine the boundaries of the Mesh for stitching later
   [Bundle_Mesh_add_outer_bounds]
     type = SideSetsFromNormalsGenerator
     input = Bundle_Mesh_combined
     normals = '1 0 0   -1 0 0   0 1 0   0 -1 0' # Right, Left, Top, Bottom
     new_boundary = 'outer_x_pos outer_x_neg outer_y_pos outer_y_neg'
   []
+
+  #Now turn those 4 outer boundaries into 1 combined Mesh
   [Bundle_Mesh_merge_outer_bounds]
     type = RenameBoundaryGenerator
     input = Bundle_Mesh_add_outer_bounds
     old_boundary = 'outer_x_pos outer_x_neg outer_y_pos outer_y_neg'
     new_boundary = 'bundle_ext bundle_ext bundle_ext bundle_ext'
   []
+
+  #Now fix any issues that arose during Stitching and boundary repair
   [Bundle_Mesh]
     type = MeshRepairGenerator
     input = Bundle_Mesh_merge_outer_bounds
     fix_node_overlap = true
     merge_boundary_ids_with_same_name = true
   []
+
+  #Now begin making Assembly, containing four bundles and a control rod
+
+  #Flip the bundle mesh to get the top left mesh
   [Bundle_flip]
     type = SymmetryTransformGenerator
     mirror_normal_vector = '0 1 0'
     mirror_point = '0 0 0'
     input = 'Bundle_Mesh'
   []
+
+  #Construct the four bundle, control rod combined mesh
   [Bundle_quad]
     type = FlexiblePatternGenerator
     boundary_type = CARTESIAN
-    boundary_size = ${r12}
-    # 88 / nodal_pitch(2) = 44 -> nodes every 2 units on the cell edge
+    boundary_size = ${r12} #Defined in terms of bundle sizes in variable section
     boundary_sectors = ${quad_sectors}
     inputs = 'Bundle_Mesh Bundle_flip cruciform_mesh'
     rect_patterns = '0;
@@ -289,9 +367,12 @@ irad = '${fparse r6*16}'
                      0;
                      1|
                      3 2 3'
+                     #Define patterns of meshes, note the first one is repeated
+                     #Notice the index 3 on the last pattern, putting any index higher than the max provided (we have 0-2) will be interpreted as blank space
     rect_origins = ' ${r3} 0 0
                     -${r3} 0 0
                         0  0 0'
+                    #We then put one of those repeated meshes on the right, and one on the left
     rect_pitches_x = '${fpitch} ${fpitch} 1'
     rect_pitches_y = '${fpitch} ${fpitch} 1'
     rect_rotations = '0.0 180.0 0.0'
@@ -299,14 +380,17 @@ irad = '${fparse r6*16}'
     background_subdomain_id = 4
     background_subdomain_name = 'water'
   []
+
+
+  # BWRS need some assemblies for the edges of the core that don't contain a control rod, and only one or tow bundles
+
+  #Section of the edge assemblies with single fuel bundles
+
+  #Create fuel bundle for top right
   [Bundle_singleRT_part]
     type = FlexiblePatternGenerator
     boundary_type = CARTESIAN
-    #we want a boundary that is one quad width plus 1 for "near" to other bundle spacing, plus another 1 for far spacing, and then move it to origin to fit that
     boundary_size = ${spitch}
-    # 42 / nodal_pitch(2) = 21 -> after translation nodes sit at y = 2,4,...,44,
-    # which is a SUBSET of the full cell's node set. This is what makes the
-    # stair-step core boundary a valid single loop.
     boundary_sectors = ${single_sectors}
     inputs = 'Bundle_Mesh'
     rect_patterns = '0'
@@ -320,18 +404,26 @@ irad = '${fparse r6*16}'
     external_boundary_name = "bundle_ext2"
     external_boundary_id = 999
   []
+
+  #Then move it out of the center to it's correct spot in the "corner" of the space
   [Bundle_singleRT_mov]
     type = TransformGenerator
     input = Bundle_singleRT_part
     transform = TRANSLATE
     vector_value = '${r3} ${r3} 0'
   []
+
+  #Do this for the Left side bundle as well by reflecting over the x axis
   [Bundle_singleLT_mov]
     type = SymmetryTransformGenerator
     mirror_normal_vector = '1 0 0'
     mirror_point = '0 0 0'
     input = 'Bundle_singleRT_mov'
   []
+
+  #To properly make the core later, we need to fill the empty space in the assembly with dummy space
+
+  #Generate boudnary for dummy space of single bundle in top right
   [Dummy_boundary_singleRT]
     # The two notch segments are 42 long; 20 added nodes -> 21 intervals of
     # exactly 2.0, which now matches the bundle patch node pitch.
@@ -345,6 +437,8 @@ irad = '${fparse r6*16}'
     '
     loop = true
   []
+
+  #Now fill in that dummy space
   [Dummy_fill_singleRT]
     type = XYDelaunayGenerator
     boundary = 'Dummy_boundary_singleRT'
@@ -355,30 +449,40 @@ irad = '${fparse r6*16}'
     output_subdomain_id = 6
     output_subdomain_name = 'Dummy'
   []
+
+  #Now combine the actual fuel bundle and the dummy area
   [Bundle_singleRT_combo]
     type = StitchMeshGenerator
     inputs = "Dummy_fill_singleRT Bundle_singleRT_mov"
     stitch_boundaries_pairs = 'Dummy_boundRT bundle_ext2'
     clear_stitched_boundary_ids = true
   []
+
+  #Now flip over the x axis to get a single bundle in the bottom right
   [Bundle_singleRB_combo]
     type = SymmetryTransformGenerator
     mirror_normal_vector = '0 1 0'
     mirror_point = '0 0 0'
     input = 'Bundle_singleRT_combo'
   []
+
+  #Flip single top right over y axis to get single top left
   [Bundle_singleLT_combo]
     type = SymmetryTransformGenerator
     mirror_normal_vector = '1 0 0'
     mirror_point = '0 0 0'
     input = 'Bundle_singleRT_combo'
   []
+
+  #Flip single top left over x axis to get bottom left
   [Bundle_singleLB_combo]
     type = SymmetryTransformGenerator
     mirror_normal_vector = '0 1 0'
     mirror_point = '0 0 0'
     input = 'Bundle_singleLT_combo'
   []
+
+  #The way we created these is incompatible with later tools, so we need to add metadata to make it usable by later generators
   [Bundle_singleRT]
     type = AddMetaDataGenerator
     input = Bundle_singleRT_combo
@@ -390,6 +494,8 @@ irad = '${fparse r6*16}'
     boolean_scalar_metadata_names = 'is_control_drum_meta peripheral_trimmability center_trimmability'
     boolean_scalar_metadata_values = 'false false true'
   []
+
+  #Add the MetaData for left top mesh
   [Bundle_singleLT]
     type = AddMetaDataGenerator
     input = Bundle_singleLT_combo
@@ -401,6 +507,8 @@ irad = '${fparse r6*16}'
     boolean_scalar_metadata_names = 'is_control_drum_meta peripheral_trimmability center_trimmability'
     boolean_scalar_metadata_values = 'false false true'
   []
+
+  #Add the MetaData for right bottom mesh
   [Bundle_singleRB]
     type = AddMetaDataGenerator
     input = Bundle_singleRB_combo
@@ -412,6 +520,8 @@ irad = '${fparse r6*16}'
     boolean_scalar_metadata_names = 'is_control_drum_meta peripheral_trimmability center_trimmability'
     boolean_scalar_metadata_values = 'false false true'
   []
+
+  #Add the MetaData for left bottom mesh
   [Bundle_singleLB]
     type = AddMetaDataGenerator
     input = Bundle_singleLB_combo
@@ -424,10 +534,14 @@ irad = '${fparse r6*16}'
     boolean_scalar_metadata_values = 'false false true'
   []
 
-  # Points are listed EXPLICITLY at the 2-unit pitch with add_nodes_per_boundary_segment = 0, because a single added nodes cannot give pitch 2 on both the 4-long horizontal segments and the 42-long vertical segments.
+
+  #Now begin creating assemblies with two bundles next to each other, on top, bottom, on the right, and on the left
+
+  #Create the boundary that exists between two single fuel bundles where a control rod normally is, as we need to fill that with water
   [Bundle_gapT_boundary]
     type = PolyLineMeshGenerator
     loop = true
+    # We need to match the number of line segments on the edges of the fuel bundles with this filler, so we must define lots of points by hand : (
     points = '2 44 0
               0 44 0
               -2 44 0
@@ -475,6 +589,8 @@ irad = '${fparse r6*16}'
               2 40 0
               2 42 0'
   []
+
+  #Now we fill in that gap
   [Bundle_gapT_fill]
     type = XYDelaunayGenerator
     boundary = 'Bundle_gapT_boundary'
@@ -485,12 +601,16 @@ irad = '${fparse r6*16}'
     output_subdomain_id = 4
     output_subdomain_name = 'water'
   []
+
+  #Now we combine the gap and the left top and right top fuel bundles to create a double bundle mesh for the top of an assembly
   [Bundle_doubleT_part]
     type = StitchMeshGenerator
     inputs = 'Bundle_singleLT_mov Bundle_gapT_fill Bundle_singleRT_mov'
     stitch_boundaries_pairs = 'bundle_ext2 bundle_bound_gapT;bundle_bound_gapT bundle_ext2'
     clear_stitched_boundary_ids = true
   []
+
+  #Create dummy boundary for rest of assembly
   [Dummy_boundary_doubleT]
     type = PolyLineMeshGenerator
     points = '${r6}  -${r6} 0
@@ -500,6 +620,8 @@ irad = '${fparse r6*16}'
     '
     loop = true
   []
+
+  #fill in dummy boundary
   [Dummy_fill_doubleT]
     type = XYDelaunayGenerator
     boundary = 'Dummy_boundary_doubleT'
@@ -510,12 +632,17 @@ irad = '${fparse r6*16}'
     output_subdomain_id = 6
     output_subdomain_name = 'Dummy'
   []
+
+  #Now we stitch together top and bottom of assembly
   [Bundle_doubleT_combo]
     type = StitchMeshGenerator
     inputs = "Dummy_fill_doubleT Bundle_doubleT_part"
     stitch_boundaries_pairs = 'Dummy_boundT bundle_ext2'
     clear_stitched_boundary_ids = true
   []
+
+  #Now we can just rotate the top double bundle to get the rest
+
   [Bundle_doubleL_combo]
     type = TransformGenerator
     input = Bundle_doubleT_combo
@@ -534,6 +661,8 @@ irad = '${fparse r6*16}'
     transform = ROTATE
     vector_value = '0 0 90'
   []
+
+  #We must once again attach metadata to all 4 meshes
   [Bundle_doubleT]
     type = AddMetaDataGenerator
     input = Bundle_doubleT_combo
@@ -578,6 +707,14 @@ irad = '${fparse r6*16}'
     boolean_scalar_metadata_names = 'is_control_drum_meta peripheral_trimmability center_trimmability'
     boolean_scalar_metadata_values = 'false false true'
   []
+
+  #We have now created all assemblies we need to make a core!!!
+
+
+  #We want a core that is circular, but we must build a sqaure shape
+  #We can do this by using that dummy fuel element we made earlier
+
+  #Create Rough core shape
   [Core_rough]
     type = PatternedCartesianMeshGenerator
     # IDS
@@ -604,24 +741,36 @@ irad = '${fparse r6*16}'
                9 9 4 0 0 0 0 0 0 0 0 0 3 9 9;
                9 9 9 9 7 0 0 0 0 0 7 9 9 9 9'
   []
+
+  #We assigned the same block ID and name to the dummy fuel elements, and the filled in space in the single and double bundle assemblies
+
+  #Delete all dummy mesh area
   [Core_clean]
     type = BlockDeletionGenerator
     input = 'Core_rough'
     block = 'Dummy'
     new_boundary = 'Core_ext'
   []
+
+  #We need to do boundary repair, just like with the bundles after converting the water
   [Core_clean_add_outer_bounds]
     type = SideSetsFromNormalsGenerator
     input = Core_clean
     normals = '1 0 0   -1 0 0   0 1 0   0 -1 0'
     new_boundary = 'outer_x_pos outer_x_neg outer_y_pos outer_y_neg'
   []
+
+  #Now we cleanup that fixed core
   [Core_clean_repair]
     type = MeshRepairGenerator
     input = Core_clean_add_outer_bounds
     fix_node_overlap = true
     merge_boundary_ids_with_same_name = true
   []
+
+  #The core is just in empty space, but we know there should be coolant flowing around the core in the circular containment
+
+  #Make a periphery mesh around the core to add in that missing water
   [Core_periph1]
     type = PeripheralTriangleMeshGenerator
     input = Core_clean_repair
@@ -630,6 +779,13 @@ irad = '${fparse r6*16}'
     desired_area = 200
     peripheral_ring_block_name = 'water'
   []
+
+  #We have completed a 2d core map!!!!
+
+
+  #Now extend the 2d core into 3d
+
+  # You will see commented out code, the vertical layers can be divided into different blocks to allow for better resolution when doin cfd
   [extrude]
     type = AdvancedExtruderGenerator
     input = Core_periph1
@@ -647,46 +803,69 @@ irad = '${fparse r6*16}'
   #  old_block = '11 21 31 12 22 32 13 23 33 14 24 34'
   #  new_block = 'Fuel-lower Fuel-middle Fuel-upper Cladding-lower Cladding-middle Cladding-upper Control-rod-upper Control-rod-middle Control-rod-lower Water-upper Water-middle Water-lower'
   #[]
+
+
+  #To see what it would look like with all the boundaries, uncomment that final_generator line, and change it to final_generator=extrude
+
+  #We now setup the Mesh Boundaries for NEKRS CFD
+  #To use a mesh like this in NEKRS, we want to make the boundaries as simple as possible, so we will leave only neccessary boundaries on the mesh
+
+  #Make Bound between cladding and water
   [Core_add_clad_bound]
     type = SideSetsAroundSubdomainGenerator
     input = extrude
     block = 'cladding'
     new_boundary = 'clad_bound'
   []
+
+  #Make Bound between control rod and water
   [Core_add_control_bound]
     type = SideSetsAroundSubdomainGenerator
     input = Core_add_clad_bound
     block = 'Control_Rod'
     new_boundary = 'control_bound'
   []
+
+  #Make Bound between fuel and water
   [Core_add_fuel_bound]
     type = SideSetsAroundSubdomainGenerator
     input = Core_add_control_bound
     block = 'fuel'
     new_boundary = 'fuel_bound'
   []
+
+  #Now we combine these three boundaries to make a total boundary around the water
   [Core_add_water_bound]
     type = RenameBoundaryGenerator
     input = Core_add_fuel_bound
     old_boundary = 'clad_bound control_bound fuel_bound'
     new_boundary = 'Fluid_Bound Fluid_Bound Fluid_Bound'
   []
+
+  #Now we grab some other useful boundaries already in the mesh for any NEKRS CFD
   [Remap_names_for_pruning]
     type = RenameBoundaryGenerator
     input = Core_add_water_bound
     old_boundary = '10016 10017 10014'
     new_boundary = 'Fluid_input Fluid_output Fluid_wall'
   []
+
+  #Now we remove all other unneccesary boundaries
   [Boundary_prune]
     type = BoundaryDeletionGenerator
     boundary_names = 'Fluid_Bound Fluid_input Fluid_output Fluid_wall'
     input = Remap_names_for_pruning
     operation = keep
   []
+
+  #Now we reassign boundary IDS to make it easier to extract them in NEKRS
   [Core_final]
     type = RenameBoundaryGenerator
     input = Boundary_prune
     old_boundary = 'Fluid_Bound Fluid_input Fluid_output Fluid_wall'
     new_boundary = '4 1 2 3'
   []
+
+  #We have now made a BWR Core Mesh we can use in NEKRS if we want!!
+  # (Must convert the .e file with exo2nek to get a .re2 first)
 []

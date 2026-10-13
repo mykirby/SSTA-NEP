@@ -1,26 +1,8 @@
 #This is coded in the MOOSE framework to make a BWR-core mesh
 
-  #basic code form:
+#See MOOSE_basics in the Tutorials Folder for an explanantion of the MOOSE language
 
-  # Code is broken into generator blocks defined by sets of [] [], where the block name is put into the first block
-  # Each generator block has a type, inputs, and the output is itself
-  # Complex Meshes are created by chaining these generators together
-
-  # To reference the output of a block "block1" into another block "block2", it looks like so:
-  # [block1]
-  # []
-  # [block2]
-  # type = sometype
-  # input = block1
-  # []
-
-  #Most MOOSE basic mesh generators work in 2d only, so you create a 2D map of the reactor core, then extrude it into 3d
-
-  # is the comment syntax, there are no multi-line comments in MOOSE
-
-  #I will not explain what each thing does, just what I am accomplishing, or something interesting, read the MOOSE docs, found at the following link
-  # MOOSE docs: https://mooseframework.inl.gov/syntax/index.html
-
+#For a more detailed explanation of this model, see the Making_complete_meshes tutorial
 
 #Before I define the mesh in [Mesh] block, I need to set all variables, as they must be set before making any mesh
 

@@ -53,13 +53,13 @@ r8 = 80.0
 #Set pitch between nodes for all bundles and part bundles
 nodal_pitch = 2
 
-#Bound is how big the large core pattern boundary is
+#Bound is how big the large core pattern boundary is, where we have 1 space between each of the 15 bundles (14), and 1 on each side (2)
 bound = '${fparse ((r12)*15)+16}'
 
 #fpitch is distance between bundles for flex
 fpitch = '${fparse (r3*2)}'
 
-#pitch is the pitch of the centers of the blocks from each other (should be double half-width or 90)
+#pitch is the pitch of the centers of the blocks from each other (should be double half-width or 88) adding 1 for spacing
 pitch = '${fparse ((r6)*2)+1}'
 
 #ppitch is the water pin polygon size, as polygon size is half equivalent square size

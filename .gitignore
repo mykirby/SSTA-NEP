@@ -1,4 +1,6 @@
 .ipynb_checkpoints/
 .venv/
 .vscode/
-reactor_design/examples/*.e
+reactor_design/Examples/*.e
+reactor_design/Examples/*.exo
+thruster_design/tutorials

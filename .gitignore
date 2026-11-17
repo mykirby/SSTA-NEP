@@ -4,3 +4,5 @@
 reactor_design/Examples/*.e
 reactor_design/Examples/*.exo
 thruster_design/tutorials
+._*
+.DS_Store

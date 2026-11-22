@@ -3,6 +3,10 @@
 .vscode/
 reactor_design/Examples/*.e
 reactor_design/Examples/*.exo
+reactor_design/Tutorials/*.e
+reactor_design/Tutorials/*.exo
+reactor_design/Tutorials/*.xml
+reactor_design/Tutorials/*.png
 thruster_design/tutorials
 ._*
 .DS_Store

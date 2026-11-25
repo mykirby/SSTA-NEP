@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<settings>
+  <run_mode>eigenvalue</run_mode>
+  <particles>10000</particles>
+  <batches>1500</batches>
+  <inactive>250</inactive>
+  <keff_trigger>
+    <threshold>0.0005</threshold>
+    <type>std_dev</type>
+  </keff_trigger>
+  <source type="independent" strength="1.0" particle="neutron">
+    <space type="box">
+      <parameters>-250 -250 0 250 250 1000</parameters>
+    </space>
+    <constraints>
+      <fissionable>true</fissionable>
+    </constraints>
+  </source>
+  <temperature_default>553.15</temperature_default>
+  <temperature_method>interpolation</temperature_method>
+  <temperature_range>250.0 3000.0</temperature_range>
+  <temperature_tolerance>1000.0</temperature_tolerance>
+</settings>

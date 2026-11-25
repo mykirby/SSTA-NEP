@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='utf-8'?>
+<materials>
+  <material id="1" depletable="true">
+    <density value="10.92" units="g/cm3"/>
+    <nuclide name="U235" ao="90"/>
+    <nuclide name="U238" ao="10"/>
+  </material>
+  <material id="2">
+    <density value="12.52" units="g/cm3"/>
+    <nuclide name="Mo92" wo="59.0"/>
+    <nuclide name="Re185" wo="41.0"/>
+  </material>
+  <material id="3">
+    <density value="0.04462035841593078" units="g/cm3"/>
+    <nuclide name="He3" ao="0.00014"/>
+    <nuclide name="He4" ao="69.99986"/>
+    <nuclide name="Xe124" ao="0.0285"/>
+    <nuclide name="Xe126" ao="0.026699999999999998"/>
+    <nuclide name="Xe128" ao="0.573"/>
+    <nuclide name="Xe129" ao="7.920300000000001"/>
+    <nuclide name="Xe130" ao="1.2213"/>
+    <nuclide name="Xe131" ao="6.3696"/>
+    <nuclide name="Xe132" ao="8.0727"/>
+    <nuclide name="Xe134" ao="3.1308"/>
+    <nuclide name="Xe136" ao="2.6571"/>
+  </material>
+  <material id="4">
+    <density value="3.01" units="g/cm3"/>
+    <nuclide name="Be9" ao="1.0"/>
+    <nuclide name="O16" ao="0.9976206"/>
+    <nuclide name="O17" ao="0.000379"/>
+    <nuclide name="O18" ao="0.0020004"/>
+  </material>
+</materials>

@@ -46,7 +46,7 @@ openmc.reset_auto_ids()
 gc.collect()
 
 #Clean-up old data
-file_list=["materials.xml","model.xml","geometry.xml","materials.xml","plots.xml","settings.xml","plot.png"]
+file_list=["materials.xml","model.xml","geometry.xml","materials.xml","plots.xml","settings.xml","plot.png","tallies.out","summary.h5","statepoint.1500.h5"]
 for i in file_list:
     path=Path(i)
     path.unlink(missing_ok=True)
@@ -261,51 +261,85 @@ finally:
             print(f"Image saved as plot{ni}.png")
             break
 
-openmc.run(geometry_debug=True,path_input="model.xml")
-
-#Print Report to user
-s=openmc.StatePoint('statepoint.1500.h5')
-assert s.keff is not None
-keff=s.keff.nominal_value
-keffdev=s.keff.std_dev
-print(f"Final k-eff: {s.keff.nominal_value:.5f} +/- {s.keff.std_dev:.5f}")
-k_per_gen = s.k_generation
-print("k-eff for each generation:", np.array2string(k_per_gen, precision=5, floatmode='fixed')) # pyright: ignore[reportArgumentType]
-
-#Add to CSV
-
-#Setup arg list for use
-argnames=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Layout"]
-argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Layout]
-ps='report/results.csv'
-oe=False
 try:
-    o=open(ps,'x',newline='')
-except:
-    o=open(ps,'w',newline='')
-    oe=True       
-with o as file:
-    dialect='excel'
-    vl=[]
-    file.seek(0)
-    r=0
-    if oe:
-        reader = csv.DictReader(file, dialect)
-        for row in reader:
-            vl.append(row)
-            r+=1
-        file.seek(r)
-    fnames=["Trial #","k_eff","dev"]+argnames
-    fl=[r+1,keff,keffdev]+argl
-    vl.append(fl)
-    vdict={}
-    for i in range(0,len(fnames)):
-        vdict[fnames[i]]=fl[i]
-    writer = csv.DictWriter(f=file, dialect=dialect,fieldnames=fnames)
-    if not oe:
-        writer.writeheader()
-    writer.writerow(vdict)
-   
+    openmc.run(geometry_debug=True,path_input="model.xml")
+
+    #Print Report to user
+    s=openmc.StatePoint('statepoint.1500.h5')
+    assert s.keff is not None
+    keff=s.keff.nominal_value
+    keffdev=s.keff.std_dev
+    print(f"Final k-eff: {s.keff.nominal_value:.5f} +/- {s.keff.std_dev:.5f}")
+    k_per_gen = s.k_generation
+    print("k-eff for each generation:", np.array2string(k_per_gen, precision=5, floatmode='fixed')) # pyright: ignore[reportArgumentType]
+
+    #Add to CSV
+
+    #Setup arg list for use
+    argnames=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Layout"]
+    argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Layout]
+    ps='report/results.csv'
+    oe=False
+    try:
+        o=open(ps,'x',newline='')
+    except:
+        o=open(ps,'w',newline='')
+        oe=True       
+    with o as file:
+        dialect='excel'
+        vl=[]
+        file.seek(0)
+        r=0
+        if oe:
+            reader = csv.DictReader(file, dialect)
+            for row in reader:
+                vl.append(row)
+                r+=1
+            file.seek(r)
+        fnames=["Trial #","k_eff","dev"]+argnames
+        fl=[r+1,keff,keffdev]+argl
+        vl.append(fl)
+        vdict={}
+        for i in range(0,len(fnames)):
+            vdict[fnames[i]]=fl[i]
+        writer = csv.DictWriter(f=file, dialect=dialect,fieldnames=fnames)
+        if not oe:
+            writer.writeheader()
+        writer.writerow(vdict)
+except Exception as error:
+    #Setup arg list for use
+        argnames=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Layout"]
+        argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Layout]
+        ps='report/results.csv'
+        oe=False
+        try:
+            o=open(ps,'x',newline='')
+        except:
+            o=open(ps,'w',newline='')
+            oe=True       
+        with o as file:
+            dialect='excel'
+            vl=[]
+            file.seek(0)
+            r=0
+            if oe:
+                reader = csv.DictReader(file, dialect)
+                for row in reader:
+                    vl.append(row)
+                    r+=1
+                file.seek(r)
+            fnames=["Trial #","k_eff","dev"]+argnames
+            fl=[r+1,'fail','']+argl
+            vl.append(fl)
+            vdict={}
+            for i in range(0,len(fnames)):
+                vdict[fnames[i]]=fl[i]
+            writer = csv.DictWriter(f=file, dialect=dialect,fieldnames=fnames)
+            if not oe:
+                writer.writeheader()
+            writer.writerow(vdict)
+        raise RuntimeError(f"OpenMC run failure: {error}")
+        
 
 
 

@@ -60,6 +60,7 @@ argdict = {
    "Layout":"-l"
 }
 f=0
+el=[]
 for n in range(0,count-1):
     al=[]
     for i in vl:
@@ -68,37 +69,39 @@ for n in range(0,count-1):
     print(al)
     try:    
         res=subprocess.run(
-            [sys.executable,"Open_lattice_openmc_maker.py"]+al,
-            capture_output=True,
-            text=True,
+            [sys.executable,"-u","Open_lattice_openmc_maker.py"]+al,
             check=True
         )
-    except:
+    except Exception as error:
         print(f"Run number {n} failed, continuing")
+        print(f"Error was {error}")
+        el.append(n)
+        el.append(error)
         f+=1
 t2=time.time()
 dt=t2-t1
-d=0
 h=0
+m=0
 s=0
 if dt%60 is not None:
     s=dt%60
     dt=dt-s
     dt=dt/60
-    if dt%24 is not None:
-        h=dt%24
-        dt=dt-h
-        d=dt/24
+    if dt%60 is not None:
+        m=dt%60
+        dt=dt-m
+        h=dt/60
     else:
-        d=dt/24
-elif (dt/60)%24 is not None:
-    h=(dt%60)%24
-    dt=dt-h
-    d=dt/24
+        h=dt/60
+elif (dt/60)%60 is not None:
+    m=(dt/60)%60
+    dt=dt-m
+    h=dt/60
 else:
-    d=dt/24
+    h=(dt/60)/60
 print(f"Completed {count} runs, with {f} failures")
-print(f"\nin {d} days, {h} hours, and {s} seconds")
+print(f"\nin {h} hours, {m} minutes, and {s} seconds")
+print(f"Errors were: {el}")
         
 
 

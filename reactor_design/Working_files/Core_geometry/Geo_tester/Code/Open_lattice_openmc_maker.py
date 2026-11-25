@@ -261,7 +261,7 @@ finally:
             print(f"Image saved as plot{ni}.png")
             break
 
-#openmc.run(geometry_debug=True,path_input="model.xml")
+openmc.run(geometry_debug=True,path_input="model.xml")
 
 #Print Report to user
 s=openmc.StatePoint('statepoint.1500.h5')

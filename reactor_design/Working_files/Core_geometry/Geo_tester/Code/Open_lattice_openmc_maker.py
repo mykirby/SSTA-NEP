@@ -299,15 +299,15 @@ try:
         dialect='excel'
         vl=[]
         file.seek(0)
-        r=0
+        r=1
         if oe:
             reader = csv.DictReader(file, dialect)
             for row in reader:
                 vl.append(row)
                 r+=1
-            file.seek(r)
+            r=r-1
         fnames=["Trial #","k_eff","dev"]+argnames
-        fl=[r+1,keff,keffdev]+argl
+        fl=[r,keff,keffdev]+argl
         vl.append(fl)
         vdict={}
         for i in range(0,len(fnames)):
@@ -329,15 +329,15 @@ except Exception as error:
             dialect='excel'
             vl=[]
             file.seek(0)
-            r=0
+            r=1
             if oe:
                 reader = csv.DictReader(file, dialect)
                 for row in reader:
                     vl.append(row)
                     r+=1
-                file.seek(r)
+                r=r-1
             fnames=["Trial #","k_eff","dev"]+argnames
-            fl=[r+1,'fail','']+argl
+            fl=[r,'fail','']+argl
             vl.append(fl)
             vdict={}
             for i in range(0,len(fnames)):

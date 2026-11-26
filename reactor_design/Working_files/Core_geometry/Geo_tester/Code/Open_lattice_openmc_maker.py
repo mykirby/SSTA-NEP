@@ -19,10 +19,12 @@ Geometry:
 4. Sizes of everything defined parametrically
 
 Settings:
-1. 1500 batches
-    a. 250 inactive
+1. Batches
+    a. 500 Minimum
+    b. 1500 Maximum
+    c. 250 inactive
 2. 10000 particles per batch
-3. k-eff within +/- 0.0005 trigger
+3. k-eff within +/- 0.00045 every 5 batches
 '''
 
 # Imports
@@ -222,7 +224,7 @@ openmc.plot_geometry()
 
 settings=openmc.Settings()
 settings.particles=10000
-settings.batches=1500
+settings.batches=750
 settings.inactive=250
 
 upperr=[(reflectthick+reactr),(reflectthick+reactr),height]
@@ -235,7 +237,10 @@ settings.temperature = {'default': 280.0 + 273.15,
                         'range': (250.0, 3000.0),
                         'tolerance': 1000.0}
 
-settings.keff_trigger={'type':'std_dev','threshold':0.0005}
+settings.keff_trigger={'type':'std_dev','threshold':0.00045}
+settings.trigger_active=True
+settings.trigger_batch_interval=5
+settings.trigger_max_batches=1500
 
 settings.export_to_xml()
 
@@ -265,7 +270,8 @@ try:
     openmc.run(geometry_debug=True,path_input="model.xml")
 
     #Print Report to user
-    s=openmc.StatePoint('statepoint.1500.h5')
+    s_str="".join(['statepoint.',str(settings.batches),'.h5'])
+    s=openmc.StatePoint(s_str)
     assert s.keff is not None
     keff=s.keff.nominal_value
     keffdev=s.keff.std_dev
@@ -280,11 +286,9 @@ try:
     argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Layout]
     ps='report/results.csv'
     oe=False
-    try:
-        o=open(ps,'x',newline='')
-    except:
-        o=open(ps,'w',newline='')
-        oe=True       
+    if Path(ps).exists():
+        oe=True
+    o=open(ps,'a+',newline='')
     with o as file:
         dialect='excel'
         vl=[]
@@ -312,11 +316,9 @@ except Exception as error:
         argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Layout]
         ps='report/results.csv'
         oe=False
-        try:
-            o=open(ps,'x',newline='')
-        except:
-            o=open(ps,'w',newline='')
-            oe=True       
+        if Path(ps).exists():
+            oe=True 
+        o=open(ps,'a+',newline='')  
         with o as file:
             dialect='excel'
             vl=[]

@@ -101,7 +101,7 @@ else:
     h=(dt/60)/60
 print(f"Completed {count} runs, with {f} failures")
 print(f"\nin {h} hours, {m} minutes, and {s} seconds")
-print(f"Errors were: {el}")
+print(f"\nErrors were: {el}")
         
 
 

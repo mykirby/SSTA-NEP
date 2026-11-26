@@ -32,7 +32,7 @@ inc={
    "Height":0,
    "Pinr":0,
    "Fuelr":0,
-   "Pinpitch":2.5,
+   "Pinpitch":0,
    "Mincoolant":0,
    "Layout":""
 }

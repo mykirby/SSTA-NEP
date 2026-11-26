@@ -48,7 +48,7 @@ openmc.reset_auto_ids()
 gc.collect()
 
 #Clean-up old data
-file_list=["materials.xml","model.xml","geometry.xml","materials.xml","plots.xml","settings.xml","plot.png","tallies.out","summary.h5","statepoint.1500.h5"]
+file_list=["materials.xml","model.xml","geometry.xml","materials.xml","plots.xml","settings.xml","plot.png","tallies.out","summary.h5"]+list(Path(".").glob("statepoint.*.h5"))
 for i in file_list:
     path=Path(i)
     path.unlink(missing_ok=True)
@@ -270,7 +270,13 @@ try:
     openmc.run(geometry_debug=True,path_input="model.xml")
 
     #Print Report to user
-    s_str="".join(['statepoint.',str(settings.batches),'.h5'])
+
+    #Find report file
+    matches = list(Path(".").glob("statepoint.*.h5"))
+    if matches:
+        s_str = matches[0] 
+    else:
+        raise ValueError("No report file found")
     s=openmc.StatePoint(s_str)
     assert s.keff is not None
     keff=s.keff.nominal_value

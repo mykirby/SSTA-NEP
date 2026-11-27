@@ -14,7 +14,7 @@ The project is currently conducted with open-source external codes, which are us
 <br>Reactor Design:
 1. ANL's [Cardinal multi-physics coupling code]("https://github.com/neams-th-coe/cardinal") 
 2. MIT's [OpenMC Monte-Carlo Neutronics code]("https://github.com/openmc-dev/openmc")
-3. ANL's [NEKrs CFD code]("https://github.com/Nek5000/nekrs")
+3. ANL's [NekRS CFD code]("https://github.com/Nek5000/nekrs")
 <br>
 
 <br>Thruster Design:

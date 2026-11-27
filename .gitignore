@@ -10,10 +10,10 @@ reactor_design/Tutorials/*.png
 reactor_design/Tutorials/*.h5
 reactor_design/Tutorials/*.out
 thruster_design/tutorials
-reactor_design/Working_files/Core_geometry/Geo_tester/Code/*.xml
-reactor_design/Working_files/Core_geometry/Geo_tester/Code/*.png
-reactor_design/Working_files/Core_geometry/Geo_tester/Code/report/images/*.png
-reactor_design/Working_files/Core_geometry/Geo_tester/Code/*.h5
-reactor_design/Working_files/Core_geometry/Geo_tester/Code/*.out
+reactor_design/Working_files/Core_geometry/Geo_tester/Code/**/*.xml
+reactor_design/Working_files/Core_geometry/Geo_tester/Code/**/*.png
+reactor_design/Working_files/Core_geometry/Geo_tester/Code/**/*.h5
+reactor_design/Working_files/Core_geometry/Geo_tester/Code/**/*.out
+reactor_design/Working_files/Core_geometry/Geo_tester/Code/**/*.csv
 ._*
 .DS_Store

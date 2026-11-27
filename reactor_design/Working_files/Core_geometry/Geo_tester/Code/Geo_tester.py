@@ -3,8 +3,17 @@
 import sys
 import subprocess
 import time
+from pathlib import Path
+import shutil
 
 t1=time.time()
+
+#Clear previous results
+imgpath=Path("report/images")
+csvpath=Path("report/results.csv")
+csvpath.unlink(missing_ok=True)
+for item in imgpath.iterdir():
+    item.unlink(missing_ok=True)
 
 #Starting points
 start={
@@ -28,7 +37,7 @@ inc={
    "Pressure":0,
    "Enrichment":0,
    "Thickness":0,
-   "Radius":0,
+   "Radius":-5,
    "Height":0,
    "Pinr":0,
    "Fuelr":0,
@@ -61,10 +70,10 @@ argdict = {
 }
 f=0
 el=[]
-for n in range(0,count-1):
+for n in range(0,count):
     al=[]
     for i in vl:
-        vdict[i]=vdict[i]+n*inc[i]
+        vdict[i]=vdict[i]+inc[i]
         al.extend([argdict[i],str(vdict[i])])
     print(al)
     try:    
@@ -102,6 +111,31 @@ else:
 print(f"Completed {count} runs, with {f} failures")
 print(f"\nin {h} hours, {m} minutes, and {s} seconds")
 print(f"\nErrors were: {el}")
+
+
+
+#Save results
+n=1
+while True:
+        rfold=Path(f"report/run{n}")
+        if rfold.exists():
+            n+=1
+        else:
+            rfold.mkdir()
+            (rfold/"images").mkdir()
+            break
+startfold=Path('report')
+csvpath=Path('report/results.csv')
+startfoldimg=Path('report/images')
+
+shutil.copy(csvpath,rfold / csvpath.name)
+for item in startfoldimg.iterdir():
+    shutil.copy(item,rfold / "images" / item.name)
+try:
+    Path("report/images").mkdir(exist_ok=False)
+except:
+    pass
+print(f"Results saved in report/run{n}")
         
 
 

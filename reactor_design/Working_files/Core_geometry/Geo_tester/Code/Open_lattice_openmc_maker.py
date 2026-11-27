@@ -247,25 +247,6 @@ settings.export_to_xml()
 mod=openmc.Model(geometry=geo,materials=mats,settings=settings)
 mod.export_to_model_xml()
 
-#Save-images for later
-img=Path("plot.png")
-
-img_fold=Path("report/images")
-try: 
-    img_fold.mkdir(parents=True,exist_ok=False)
-except:
-    pass
-finally:
-    ni=1
-    while True:
-        img_new=Path(f"report/images/plot{ni}.png")
-        if img_new.exists():
-            ni+=1
-        else:
-            shutil.copy(img,img_new)
-            print(f"Image saved as plot{ni}.png")
-            break
-
 try:
     openmc.run(geometry_debug=True,path_input="model.xml")
 

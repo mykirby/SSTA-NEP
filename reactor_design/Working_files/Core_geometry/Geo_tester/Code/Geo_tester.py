@@ -81,6 +81,24 @@ for n in range(0,count):
             [sys.executable,"-u","Open_lattice_openmc_maker.py"]+al,
             check=True
         )
+        #Save-images for later
+        img=Path("plot.png")
+
+        img_fold=Path("report/images")
+        try: 
+            img_fold.mkdir(parents=True,exist_ok=False)
+        except:
+            pass
+        finally:
+            ni=1
+        while True:
+            img_new=Path(f"report/images/plot{ni}.png")
+            if img_new.exists():
+                ni+=1
+            else:
+                shutil.copy(img,img_new)
+                print(f"Image saved as plot{ni}.png")
+                break
     except Exception as error:
         print(f"Run number {n} failed, continuing")
         print(f"Error was {error}")

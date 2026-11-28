@@ -7,7 +7,7 @@ It just determines K-eff, not heating
 Materials:
 1. Fuel is UO2 (90% enriched)
 2. Cladding is MoRe (41% Re by wt), using Mo-92 and Re-185
-3. Coolant is HeXe (30% He to start)
+3. Coolant is HeXe (70% He to start)
 4. Reflector is BeO
 5. Control Drums are B4C, using B-10 
 6. Control Drums cladding is Inconel 718
@@ -37,7 +37,6 @@ import openmc.model
 import numpy as np
 import math
 import gc
-import openmc
 import openmc.lib
 import argparse
 from pathlib import Path
@@ -57,21 +56,25 @@ for i in file_list:
     path.unlink(missing_ok=True)
 
 # Setup args to parse
+# Get bool from string
+def str2bool(v):
+    return str(v).strip().lower() in ('1','true','t','yes','y')
+
 parser=argparse.ArgumentParser(description='Parametrically defined Open-Lattice HTGR k-eff test script')
 #conditions arguments
 conditiongroup=parser.add_argument_group(title="Conditions",description="Initial materials and problem settings")
 conditiongroup.add_argument("-T","--Temp",type=float,default=1000,help="Operating Temp in K, default is 1000K")
 conditiongroup.add_argument("-p","--Pressure",type=float,default=4,help="Operating Pressure in Mpa, default is 4Mpa")
 conditiongroup.add_argument("-e","--Enrichment",type=float,default=90,help="Enrichment % of fuel, default is 90")
-conditiongroup.add_argument("-go","--Geometryonly",type=bool,default=False,help="Whether to run in geometry-only mode, where the model is produced, but not run")
-
+conditiongroup.add_argument("-go","--Geometryonly", type=str2bool, nargs='?',
+                            const=True,default=False,help="Whether to run in geometry-only mode, where the model is produced, but not run")
 #Geometry arguments
 geometrygroup=parser.add_argument_group(title="Geometry",description="Geometry settings (cm), capitals matter here")
 geometrygroup.add_argument("-th","--Thickness",type=float,default=30,help="Thickness of the reflector surrounding the reactor, default 30")
 geometrygroup.add_argument("-r","--Radius",type=float,default=220,help="Radius of the inner reactor cavity, default 220")
 geometrygroup.add_argument("-H","--Height",type=float,default=1000,help="Height of reactor to be tested, default 1000")
 geometrygroup.add_argument("-pr","--Pinr",type=float,default=2.5,help="Total radius of fuel pins, default 2.5")
-geometrygroup.add_argument("-fr","--Fuelr",type=float,default=60,help="Percent of pin radius filled with fuel, default 60")
+geometrygroup.add_argument("-fr","--Fuelr",type=float,default=60,help="Percent of pin radius filled with fuel, default 60, meaning a float of the percent so default would be 60, not .6")
 geometrygroup.add_argument("-pp","--Pinpitch",type=float,default=7.5,help="Pitch(distance) between centers of fuel pins, default 7.5")
 geometrygroup.add_argument("-mc","--Mincoolant",type=float,default=2,help="Minimum width of coolant between reflector and edge pins, default 2")
 geometrygroup.add_argument("-pl","--Pinlayout",default='h',choices=['h','s'],help="Pinlayout type for reactor: h for hexagonal, s for square ,default h")
@@ -81,7 +84,7 @@ controlgroup.add_argument("-dc","--Drumcount",type=int,default=6,help='Number of
 controlgroup.add_argument("-dd","--Drumdiameter",type=float,default=15,help='Diameter of Control Drums, default 15')
 controlgroup.add_argument("-dad","--Drumabsorberdiameter",type=float,default=13,help='Diameter of Absorber/reflector in control drum, default 13')
 controlgroup.add_argument("-daid","--Drumabsorberinnerdiameter",type=float,default=11,help='Inner diameter(minimum) of absorber, default 11')
-controlgroup.add_argument('-dr',"--Drumrotation",type=float,nargs='+',default=0,help='''Rotation(s) of Control Drums in degrees CCW, with 0 as reflector facing directly away from core. 
+controlgroup.add_argument('-dr',"--Drumrotation",type=float,nargs='+',default=0,help='''Rotation(s) of Control Drums in degrees CCW, with 0 as absorber facing directly away from core. 
                                                                                         If one value is given, all drums rotated same amount, or give individual rotations sequentially for all drums.''')
 args=parser.parse_args()
 
@@ -142,7 +145,7 @@ hexe = openmc.Material()
 #Second coefficient for PV=NRT
 B=39.18-(2.911*10**4)/T - (2.069*10**6)/(T**2)
 #density
-dens=(93.106*P)/(8.3145*T+B*P)
+dens=(42.190*P)/(8.3145*T+B*P)
 hexe.set_density('g/cm3', dens)
 hexe.add_element('He',70)
 hexe.add_element('Xe',30)
@@ -202,6 +205,8 @@ drum_clad_boundl = []
 reflect_boundl = []
 absorb_boundl = []
 
+#To prevent errors if drum_count is 0
+drum_bound=None
 # Iterate through the drumcenters, create bounds for drum cladding, reflector, and absorber
 for n, c in enumerate(drum_centers):
     da_plane = a_plane.translate((c[0], c[1], 0.0), inplace=False)
@@ -222,7 +227,7 @@ for n, c in enumerate(drum_centers):
     reflect_boundl.append(dreflect_bound)
 
     # Combined outer boundary to exclude from the surrounding reflector cell
-    drum_bound = -ddrumbound if n == 0 else (drum_bound | -ddrumbound) # pyright: ignore[reportOperatorIssue, reportPossiblyUnboundVariable]
+    drum_bound = -ddrumbound if (n == 0 or drum_bound is None) else (drum_bound | -ddrumbound) # pyright: ignore[reportOperatorIssue, reportPossiblyUnboundVariable]
 
 #Determine when we were given a list of rotations, or one common rotation, either way make a list of rotations in degrees as floats
 if np.ndim(args.Drumrotation) == 0:
@@ -330,7 +335,10 @@ print(f'{len(pin_centers)} pins ({len(pin_cells)} cells) created')
 # Create Reflector and Coolant Cells
 
 #Create the regions
-Reflectreg = -reflectbound & +coolant_bound & hreg & ~drum_bound # pyright: ignore[reportOperatorIssue, reportPossiblyUnboundVariable]
+assert drum_bound is openmc.Region
+Reflectreg = -reflectbound & +coolant_bound & hreg
+if drum_bound is not None:
+    Reflectreg &= ~drum_bound
 Coolantreg = -coolant_bound & hreg
 
 #Subtract where fuel pins are
@@ -401,11 +409,32 @@ settings.export_to_xml()
 mod=openmc.Model(geometry=geo,materials=mats,settings=settings)
 mod.export_to_model_xml()
 
+
+
+#For reformatting the data we get
+casts={"Trial #":int,"k_eff":float,"dev":float,
+    "Temp":float,"Pressure":float,"Enrichment":float,"Thickness":float,
+    "Radius":float,"Height":float,"Pinr":float,"Fuelr":float,
+    "Pinpitch":float,"Mincoolant":float}   #Pinlayout omitted on purpose: 'h'/'s'
+
+def recast(row):
+    """str row from DictReader -> native types. Blank/failed cells stay None."""
+    out={}
+    for k,v in row.items():
+        if v is None or v=="":
+            out[k]=None
+        else:
+            try:
+                out[k]=casts.get(k,str)(v)
+            except ValueError:      #e.g. a 'fail' sentinel sitting in k_eff
+                out[k]=v
+    return out
+
 #Now run OpenMC if we are not running in Geometry-Only mode
 if not Go:
     try:
         #Run the sim
-        openmc.run(geometry_debug=True,path_input="model.xml")
+        openmc.run(path_input="model.xml")
 
         #Print Report to user
 
@@ -434,9 +463,7 @@ if not Go:
         
         #Check if some results have already been recorded
         ps='report/results.csv'
-        oe=False
-        if Path(ps).exists():
-            oe=True
+        oe = Path(ps).exists() and Path(ps).stat().st_size > 0
 
         #Open file either way
         o=open(ps,'a+',newline='')
@@ -456,22 +483,20 @@ if not Go:
             r=1
             if oe:
                 #Read old data, move forward writer by one row
-                reader = csv.DictReader(file, dialect)
-                for row in reader:
-                    vl.append(row)
-                    r+=1
-                r=r-1
+                reader = csv.DictReader(file, dialect=dialect)
+                vl=[recast(row) for row in reader if row.get("Trial #")]
+                r = max((row["Trial #"] for row in vl if isinstance(row["Trial #"], int)), default=0) + 1
             #Column headings
             fnames=["Trial #","k_eff","dev"]+argnames
             #Data for new row
             fl=[r,keff,keffdev]+argl
-            #Also add new data to list of values
-            vl.append(fl)
 
-            #Now make dict of values
-            vdict={}
-            for i in range(0,len(fnames)):
-                vdict[fnames[i]]=fl[i]
+            #Create dict of values
+            vdict=dict(zip(fnames,fl))
+    
+            #Also add new data to list of values
+            vl.append(vdict)
+
             #Setup file to be written to
             writer = csv.DictWriter(f=file, dialect=dialect,fieldnames=fnames)
 
@@ -488,9 +513,7 @@ if not Go:
         argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Pinlayout]
         #Just like above for first part
         ps='report/results.csv'
-        oe=False
-        if Path(ps).exists():
-            oe=True 
+        oe = Path(ps).exists() and Path(ps).stat().st_size > 0
         o=open(ps,'a+',newline='')  
         with o as file:
             dialect='excel'
@@ -498,21 +521,19 @@ if not Go:
             file.seek(0)
             r=1
             if oe:
-                reader = csv.DictReader(file, dialect)
-                for row in reader:
-                    vl.append(row)
-                    r+=1
-                r=r-1
+                reader = csv.DictReader(file, dialect=dialect)
+                vl=[recast(row) for row in reader if row.get("Trial #")] # pyright: ignore[reportPossiblyUnboundVariable]
+                r = max((row["Trial #"] for row in vl if isinstance(row["Trial #"], int)), default=0) + 1
             fnames=["Trial #","k_eff","dev"]+argnames
 
             #Here, we write fail and '' for k_eff and dev, to show an OpenMC failure
             fl=[r,'fail','']+argl
 
-            #Now same as before
-            vl.append(fl)
-            vdict={}
-            for i in range(0,len(fnames)):
-                vdict[fnames[i]]=fl[i]
+            #Create dict of values
+            vdict=dict(zip(fnames,fl))
+    
+            #Also add new data to list of values
+            vl.append(vdict)
             writer = csv.DictWriter(f=file, dialect=dialect,fieldnames=fnames)
             if not oe:
                 writer.writeheader()

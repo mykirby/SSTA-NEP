@@ -10,6 +10,15 @@ t1=time.time()
 
 #Clear previous results
 imgpath=Path("report/images")
+rdir=Path("report")
+try:
+    rdir.mkdir(exist_ok=False)
+except:
+    pass
+try:
+    imgpath.mkdir(exist_ok=False)
+except:
+    pass
 csvpath=Path("report/results.csv")
 csvpath.unlink(missing_ok=True)
 for item in imgpath.iterdir():
@@ -28,23 +37,33 @@ start={
 "Pinpitch":7.5,
 "Mincoolant":2,
 "Layout":"h",
+"Drumcount":6,
+"Drumdiamter":15,
+"Drumabsorberdiameter":13,
+"Drumabsorberinnerdiameter":11,
+"Drumrotation":0,
 "Geometryonly":False
 }
 #Increments
 
 #Dict of increments per variable
 inc={
-   "Temp":None,
-   "Pressure":None,
-   "Enrichment":None,
-   "Thickness":None,
-   "Radius":-5,
-   "Height":None,
-   "Pinr":None,
-   "Fuelr":None,
-   "Pinpitch":None,
-   "Mincoolant":None,
-   "Layout": None,
+    "Temp":None,
+    "Pressure":None,
+    "Enrichment":None,
+    "Thickness":None,
+    "Radius":-5,
+    "Height":None,
+    "Pinr":None,
+    "Fuelr":None,
+    "Pinpitch":None,
+    "Mincoolant":None,
+    "Layout": None,
+    "Drumcount":None,
+    "Drumdiamter":None,
+    "Drumabsorberdiameter":None,
+    "Drumabsorberinnerdiameter":None,
+    "Drumrotation":None,
     "Geometryonly": None
 }
 
@@ -55,28 +74,33 @@ count=10
 #List of variables to iterate through
 vl=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Layout","Geometryonly"]
 
-vdict=start
+vdict=dict(start)
 
 argdict = {
-   "Temp":"-T",
-   "Pressure":"-p",
-   "Enrichment":"-e",
-   "Thickness":"-th",
-   "Radius":"-r",
-   "Height":"-H",
-   "Pinr":"-pr",
-   "Fuelr":"-fr",
-   "Pinpitch":"-pp",
-   "Mincoolant":"-mc",
-   "Layout":"-l",
-   "Geometryonly":"-go"
+    "Temp":"-T",
+    "Pressure":"-p",
+    "Enrichment":"-e",
+    "Thickness":"-th",
+    "Radius":"-r",
+    "Height":"-H",
+    "Pinr":"-pr",
+    "Fuelr":"-fr",
+    "Pinpitch":"-pp",
+    "Mincoolant":"-mc",
+    "Layout":"-pl",
+    "Drumcount":"-dc",
+    "Drumdiamter":"-dd",
+    "Drumabsorberdiameter":"-dad",
+    "Drumabsorberinnerdiameter":"-daid",
+    "Drumrotation":"-dr",
+    "Geometryonly":"-go"
 }
 f=0
 el=[]
-for n in range(0,count):
-    al=[]
+for n in range(count + 1):
+    al = []
     for i in vl:
-        if inc[i] is not None:
+        if n > 0 and inc[i] is not None:
             vdict[i] = vdict[i] + inc[i]
         al.extend([argdict[i],str(vdict[i])])
     print(al)
@@ -90,46 +114,23 @@ for n in range(0,count):
 
         img_fold=Path("report/images")
         try: 
-            img_fold.mkdir(parents=True,exist_ok=False)
+            img_fold.mkdir(parents=True,exist_ok=True)
         except:
             pass
-        finally:
-            ni=1
-        while True:
-            img_new=Path(f"report/images/plot{ni}.png")
-            if img_new.exists():
-                ni+=1
-            else:
-                shutil.copy(img,img_new)
-                print(f"Image saved as plot{ni}.png")
-                break
+        img_new=Path(f"report/images/plot{n}.png")
+        shutil.copy(img,img_new)
+        print(f"Image saved as plot{n}.png")
     except Exception as error:
         print(f"Run number {n} failed, continuing")
         print(f"Error was {error}")
-        el.append(n)
-        el.append(error)
+        el.append((n, repr(error)))
         f+=1
 t2=time.time()
 dt=t2-t1
-h=0
-m=0
-s=0
-if dt%60 is not None:
-    s=dt%60
-    dt=dt-s
-    dt=dt/60
-    if dt%60 is not None:
-        m=dt%60
-        dt=dt-m
-        h=dt/60
-    else:
-        h=dt/60
-elif (dt/60)%60 is not None:
-    m=(dt/60)%60
-    dt=dt-m
-    h=dt/60
-else:
-    h=(dt/60)/60
+
+#Calculate time
+m, s = divmod(dt, 60)
+h, m = divmod(m, 60)
 print(f"Completed {count} runs, with {f} failures")
 print(f"\nin {h} hours, {m} minutes, and {s} seconds")
 print(f"\nErrors were: {el}")

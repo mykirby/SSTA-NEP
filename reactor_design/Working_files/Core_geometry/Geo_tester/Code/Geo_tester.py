@@ -34,18 +34,18 @@ start={
 
 #Dict of increments per variable
 inc={
-   "Temp":0,
-   "Pressure":0,
-   "Enrichment":0,
-   "Thickness":0,
+   "Temp":None,
+   "Pressure":None,
+   "Enrichment":None,
+   "Thickness":None,
    "Radius":-5,
-   "Height":0,
-   "Pinr":0,
-   "Fuelr":0,
-   "Pinpitch":0,
-   "Mincoolant":0,
-   "Layout":"",
-   "Geometyronly":""
+   "Height":None,
+   "Pinr":None,
+   "Fuelr":None,
+   "Pinpitch":None,
+   "Mincoolant":None,
+   "Layout": None,
+    "Geometryonly": None
 }
 
 #Count of times to iterate, meaning you will get count+1 results, as it does initial, then initial+one increment,+another increment, until it has added count increments. For count=10, it gives initial value, then 10 increments, for a total of 11 results, where starting conditions are trial #0
@@ -76,7 +76,8 @@ el=[]
 for n in range(0,count):
     al=[]
     for i in vl:
-        vdict[i]=vdict[i]+inc[i]
+        if inc[i] is not None:
+            vdict[i] = vdict[i] + inc[i]
         al.extend([argdict[i],str(vdict[i])])
     print(al)
     try:    

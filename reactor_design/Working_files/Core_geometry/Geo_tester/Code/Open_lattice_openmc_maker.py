@@ -77,7 +77,7 @@ geometrygroup.add_argument("-mc","--Mincoolant",type=float,default=2,help="Minim
 geometrygroup.add_argument("-pl","--Pinlayout",default='h',choices=['h','s'],help="Pinlayout type for reactor: h for hexagonal, s for square ,default h")
 
 controlgroup=parser.add_argument_group(title="Controls",description="Controls settings, including geometry (cm), and positions (%)")
-controlgroup.add_argument("-dc","--Drumcount",type=float,default=6,help='Number of control drums')
+controlgroup.add_argument("-dc","--Drumcount",type=int,default=6,help='Number of control drums')
 controlgroup.add_argument("-dd","--Drumdiameter",type=float,default=15,help='Diameter of Control Drums, default 15')
 controlgroup.add_argument("-dad","--Drumabsorberdiameter",type=float,default=13,help='Diameter of Absorber/reflector in control drum, default 13')
 controlgroup.add_argument("-daid","--Drumabsorberinnerdiameter",type=float,default=11,help='Inner diameter(minimum) of absorber, default 11')
@@ -130,6 +130,7 @@ uo2 = openmc.Material()
 uo2.set_density('g/cm3',10.9200)
 uo2.add_nuclide('U235',enrich)
 uo2.add_nuclide('U238',(100-enrich))
+uo2.add_element('O',200)
 
 more = openmc.Material()
 more.set_density('g/cm3',12.5200)
@@ -376,8 +377,8 @@ settings.batches=750
 settings.inactive=250
 
 #Set up uniform distrobution of neutrons
-upperr=[(reflectthick+reactr),(reflectthick+reactr),height]
-lowerl=[-(reflectthick+reactr),-(reflectthick+reactr),0]
+upperr=[reactr,reactr,height]
+lowerl=[-reactr,-reactr,0]
 uniform_dist = openmc.stats.Box(lowerl, upperr)
 settings.source = openmc.IndependentSource(space=uniform_dist,constraints={'fissionable': True})
 

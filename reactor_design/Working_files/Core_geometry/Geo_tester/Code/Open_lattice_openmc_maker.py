@@ -410,14 +410,14 @@ mod.export_to_model_xml()
 
 
 
-#For reformatting the data we get
+#For reformatting the data we get from the csv file, and ensuring we could use it for later math
 casts={"Trial #":int,"k_eff":float,"dev":float,
     "Temp":float,"Pressure":float,"Enrichment":float,"Thickness":float,
     "Radius":float,"Height":float,"Pinr":float,"Fuelr":float,
-    "Pinpitch":float,"Mincoolant":float}   #Pinlayout omitted on purpose: 'h'/'s'
+    "Pinpitch":float,"Mincoolant":float} 
 
 def recast(row):
-    """str row from DictReader -> native types. Blank/failed cells stay None."""
+    #takes csv data, turns it into usable info
     out={}
     for k,v in row.items():
         if v is None or v=="":
@@ -425,7 +425,7 @@ def recast(row):
         else:
             try:
                 out[k]=casts.get(k,str)(v)
-            except ValueError:      #e.g. a 'fail' sentinel sitting in k_eff
+            except ValueError:      #If there is a value of a different type, ex: k_eff is "fail", just pass it along
                 out[k]=v
     return out
 

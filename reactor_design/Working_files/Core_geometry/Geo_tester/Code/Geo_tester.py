@@ -27,7 +27,8 @@ start={
 "Fuelr":60,
 "Pinpitch":7.5,
 "Mincoolant":2,
-"Layout":"h"
+"Layout":"h",
+"Geometryonly":False
 }
 #Increments
 
@@ -43,15 +44,16 @@ inc={
    "Fuelr":0,
    "Pinpitch":0,
    "Mincoolant":0,
-   "Layout":""
+   "Layout":"",
+   "Geometyronly":""
 }
 
-#Count of times to iterate
+#Count of times to iterate, meaning you will get count+1 results, as it does initial, then initial+one increment,+another increment, until it has added count increments. For count=10, it gives initial value, then 10 increments, for a total of 11 results, where starting conditions are trial #0
 count=10
 
 
 #List of variables to iterate through
-vl=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Layout"]
+vl=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Layout","Geometryonly"]
 
 vdict=start
 
@@ -66,7 +68,8 @@ argdict = {
    "Fuelr":"-fr",
    "Pinpitch":"-pp",
    "Mincoolant":"-mc",
-   "Layout":"-l"
+   "Layout":"-l",
+   "Geometryonly":"-go"
 }
 f=0
 el=[]
@@ -145,8 +148,8 @@ while True:
 startfold=Path('report')
 csvpath=Path('report/results.csv')
 startfoldimg=Path('report/images')
-
-shutil.copy(csvpath,rfold / csvpath.name)
+if not start["Geometryonly"]:
+    shutil.copy(csvpath,rfold / csvpath.name)
 for item in startfoldimg.iterdir():
     shutil.copy(item,rfold / "images" / item.name)
 try:

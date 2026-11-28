@@ -62,6 +62,7 @@ conditiongroup=parser.add_argument_group(title="Conditions",description="Initial
 conditiongroup.add_argument("-T","--Temp",type=float,default=1000,help="Operating Temp in K, default is 1000K")
 conditiongroup.add_argument("-p","--Pressure",type=float,default=4,help="Operating Pressure in Mpa, default is 4Mpa")
 conditiongroup.add_argument("-e","--Enrichment",type=float,default=90,help="Enrichment % of fuel, default is 90")
+conditiongroup.add_argument("-go","--Geometryonly",type=bool,default=False,help="Whether to run in geometry-only mode, where the model is produced, but not run")
 
 #Geometry arguments
 geometrygroup=parser.add_argument_group(title="Geometry",description="Geometry settings (cm), capitals matter here")
@@ -88,6 +89,11 @@ args=parser.parse_args()
 #Condition variables
 
 #Conditions
+Go=args.Geometryonly
+
+#To test new stuff, uncomment this block
+#Go=True
+
 T=args.Temp # pyright: ignore[reportArgumentType] #Kelvin
 P=args.Pressure # pyright: ignore[reportArgumentType] #Mpa, this is pressure in reactor vessel
 
@@ -348,65 +354,36 @@ settings.export_to_xml()
 mod=openmc.Model(geometry=geo,materials=mats,settings=settings)
 mod.export_to_model_xml()
 
-try:
-    openmc.run(geometry_debug=True,path_input="model.xml")
+if not Go:
+    try:
+        openmc.run(geometry_debug=True,path_input="model.xml")
 
-    #Print Report to user
+        #Print Report to user
 
-    #Find report file
-    matches = list(Path(".").glob("statepoint.*.h5"))
-    if matches:
-        s_str = matches[0] 
-    else:
-        raise ValueError("No report file found")
-    s=openmc.StatePoint(s_str)
-    assert s.keff is not None
-    keff=s.keff.nominal_value
-    keffdev=s.keff.std_dev
-    print(f"Final k-eff: {s.keff.nominal_value:.5f} +/- {s.keff.std_dev:.5f}")
-    k_per_gen = s.k_generation
-    print("k-eff for each generation:", np.array2string(k_per_gen, precision=5, floatmode='fixed')) # pyright: ignore[reportArgumentType]
+        #Find report file
+        matches = list(Path(".").glob("statepoint.*.h5"))
+        if matches:
+            s_str = matches[0] 
+        else:
+            raise ValueError("No report file found")
+        s=openmc.StatePoint(s_str)
+        assert s.keff is not None
+        keff=s.keff.nominal_value
+        keffdev=s.keff.std_dev
+        print(f"Final k-eff: {s.keff.nominal_value:.5f} +/- {s.keff.std_dev:.5f}")
+        k_per_gen = s.k_generation
+        print("k-eff for each generation:", np.array2string(k_per_gen, precision=5, floatmode='fixed')) # pyright: ignore[reportArgumentType]
 
-    #Add to CSV
+        #Add to CSV
 
-    #Setup arg list for use
-    argnames=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Pinlayout"]
-    argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Pinlayout]
-    ps='report/results.csv'
-    oe=False
-    if Path(ps).exists():
-        oe=True
-    o=open(ps,'a+',newline='')
-    with o as file:
-        dialect='excel'
-        vl=[]
-        file.seek(0)
-        r=1
-        if oe:
-            reader = csv.DictReader(file, dialect)
-            for row in reader:
-                vl.append(row)
-                r+=1
-            r=r-1
-        fnames=["Trial #","k_eff","dev"]+argnames
-        fl=[r,keff,keffdev]+argl
-        vl.append(fl)
-        vdict={}
-        for i in range(0,len(fnames)):
-            vdict[fnames[i]]=fl[i]
-        writer = csv.DictWriter(f=file, dialect=dialect,fieldnames=fnames)
-        if not oe:
-            writer.writeheader()
-        writer.writerow(vdict)
-except Exception as error:
-    #Setup arg list for use
+        #Setup arg list for use
         argnames=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Pinlayout"]
         argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Pinlayout]
         ps='report/results.csv'
         oe=False
         if Path(ps).exists():
-            oe=True 
-        o=open(ps,'a+',newline='')  
+            oe=True
+        o=open(ps,'a+',newline='')
         with o as file:
             dialect='excel'
             vl=[]
@@ -419,7 +396,7 @@ except Exception as error:
                     r+=1
                 r=r-1
             fnames=["Trial #","k_eff","dev"]+argnames
-            fl=[r,'fail','']+argl
+            fl=[r,keff,keffdev]+argl
             vl.append(fl)
             vdict={}
             for i in range(0,len(fnames)):
@@ -428,15 +405,45 @@ except Exception as error:
             if not oe:
                 writer.writeheader()
             writer.writerow(vdict)
-        raise RuntimeError(f"OpenMC run failure: {error}")
-   
+    except Exception as error:
+        #Setup arg list for use
+            argnames=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Pinlayout"]
+            argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Pinlayout]
+            ps='report/results.csv'
+            oe=False
+            if Path(ps).exists():
+                oe=True 
+            o=open(ps,'a+',newline='')  
+            with o as file:
+                dialect='excel'
+                vl=[]
+                file.seek(0)
+                r=1
+                if oe:
+                    reader = csv.DictReader(file, dialect)
+                    for row in reader:
+                        vl.append(row)
+                        r+=1
+                    r=r-1
+                fnames=["Trial #","k_eff","dev"]+argnames
+                fl=[r,'fail','']+argl
+                vl.append(fl)
+                vdict={}
+                for i in range(0,len(fnames)):
+                    vdict[fnames[i]]=fl[i]
+                writer = csv.DictWriter(f=file, dialect=dialect,fieldnames=fnames)
+                if not oe:
+                    writer.writeheader()
+                writer.writerow(vdict)
+            raise RuntimeError(f"OpenMC run failure: {error}")
+    
 
 
 
 
 
 
-        
+            
 
 
 

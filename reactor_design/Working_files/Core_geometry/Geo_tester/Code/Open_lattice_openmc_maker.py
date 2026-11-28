@@ -348,7 +348,7 @@ settings.export_to_xml()
 mod=openmc.Model(geometry=geo,materials=mats,settings=settings)
 mod.export_to_model_xml()
 
-'''
+
 try:
     openmc.run(geometry_debug=True,path_input="model.xml")
 
@@ -430,7 +430,7 @@ except Exception as error:
                 writer.writeheader()
             writer.writerow(vdict)
         raise RuntimeError(f"OpenMC run failure: {error}")
-'''    
+   
 
 
 

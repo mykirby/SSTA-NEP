@@ -9,6 +9,8 @@ Materials:
 2. Cladding is MoRe (41% Re by wt), using Mo-92 and Re-185
 3. Coolant is HeXe (30% He to start)
 4. Reflector is BeO
+5. Control Drums are B4C, using B-10 
+6. Control Drums cladding is Inconel 718
 
 For the purposes of this study, there is vaccum above and below the core
 
@@ -70,8 +72,15 @@ geometrygroup.add_argument("-pr","--Pinr",type=float,default=2.5,help="Total rad
 geometrygroup.add_argument("-fr","--Fuelr",type=float,default=60,help="Percent of pin radius filled with fuel, default 60")
 geometrygroup.add_argument("-pp","--Pinpitch",type=float,default=7.5,help="Pitch(distance) between centers of fuel pins, default 7.5")
 geometrygroup.add_argument("-mc","--Mincoolant",type=float,default=2,help="Minimum width of coolant between reflector and edge pins, default 2")
-geometrygroup.add_argument("-l","--Layout",default='h',choices=['h','s'],help="Layout type for reactor: h for hexagonal, s for square ,default h")
+geometrygroup.add_argument("-pl","--Pinlayout",default='h',choices=['h','s'],help="Pinlayout type for reactor: h for hexagonal, s for square ,default h")
 
+controlgroup=parser.add_argument_group(title="Controls",description="Controls settings, including geometry (cm), and positions (%)")
+controlgroup.add_argument("-dc","--Drumcount",type=float,default=6,help='Number of control drums')
+controlgroup.add_argument("-dd","--Drumdiameter",type=float,default=15,help='Diameter of Control Drums, default 15')
+controlgroup.add_argument("-dad","--Drumabsorberdiameter",type=float,default=13,help='Diameter of Absorber/reflector in control drum, default 13')
+controlgroup.add_argument("-daid","--Drumabsorberinnerdiameter",type=float,default=11,help='Inner diameter(minimum) of absorber, default 11')
+controlgroup.add_argument('-dr',"--Drumrotation",type=float,nargs='+',default=0,help='''Rotation(s) of Control Drums in degrees CCW, with 0 as reflector facing inward. 
+                                                                                        If one value is given, all drums rotated same amount, or give individual rotations sequentially for all drums.''')
 args=parser.parse_args()
 
 # Setup variables
@@ -96,10 +105,17 @@ height=args.Height #Height of reactor in m
 pinr=args.Pinr #Radius of total fuel pin
 fuelr=pinr*args.Fuelr/100 #Radius of fuel section of fuel pin
 
-#Layout
+#Pinlayout
 pinp=args.Pinpitch #distance between the center of each fuel pin horizontally
 coolmin=args.Mincoolant #minimum area between edge of pin and end of coolant
-layout_type=args.Layout # 's' or 'h' for square, or hexagonal layout 
+layout_type=args.Pinlayout # 's' or 'h' for square, or hexagonal layout 
+
+#Controllayout
+dcount=args.Drumcount
+drumr=args.Drumdiameter/2
+drumir=args.Drumabsorberdiameter/2
+drumiar=args.Drumabsorberinnerdiameter/2
+    
 
 
 # Materals Code
@@ -128,7 +144,22 @@ beo.set_density('g/cm3',3.010)
 beo.add_element('Be',1)
 beo.add_element('O',1)
 
-mats=openmc.Materials([uo2,more,hexe,beo])
+b4c = openmc.Material()
+b4c.set_density('g/cm3',2.3700)
+b4c.add_nuclide('B10',4)
+b4c.add_element('C',1)
+
+inc = openmc.Material(name="Inconel 718")
+inc.set_density("g/cm3", 8.19)  # Typical ~8.19–8.2 g/cm3
+inc.add_element("Ni", 0.5250, "wo")
+inc.add_element("Cr", 0.1900, "wo")
+inc.add_element("Fe", 0.1800, "wo")
+inc.add_element("Nb", 0.0510, "wo")
+inc.add_element("Mo", 0.0300, "wo")
+inc.add_element("Ti", 0.0090, "wo")
+inc.add_element("Al", 0.0050, "wo")
+
+mats=openmc.Materials([uo2,more,hexe,beo,b4c,inc])
 mats.export_to_xml()
 
 #Geometry Code
@@ -139,6 +170,75 @@ coolant_bound = openmc.ZCylinder(0, 0, reactr)
 top = openmc.ZPlane(height, boundary_type='vacuum')
 bottom = openmc.ZPlane(0, boundary_type='vacuum')
 hreg = -top & +bottom
+
+# Control Drums setup
+drumcr = reactr + (reflectthick / 2)
+drum_centers = []
+drumpos = np.array([drumcr, 0.0, 0.0])
+
+# Fix 1: range(dcount) instead of range(0, dcount - 1)
+for n in range(dcount):
+    dpos = openmc.get_rotation_matrix((0, 0, n * 360.0 / dcount)) @ drumpos
+    drum_centers.append(dpos)
+
+# Create the Drums
+t1 = np.radians(30.0)
+t2 = np.radians(150.0)
+a_plane = openmc.Plane(a=np.sin(t1), b=np.cos(t1), c=0.0, d=0.0)
+b_plane = openmc.Plane(a=np.sin(t2), b=np.cos(t2), c=0.0, d=0.0)
+
+drum_boundl = []
+drum_clad_boundl = []
+reflect_boundl = []
+absorb_boundl = []
+
+for n, c in enumerate(drum_centers):
+    da_plane = a_plane.translate((c[0], c[1], 0.0), inplace=False)
+    db_plane = b_plane.translate((c[0], c[1], 0.0), inplace=False)
+    darc = +da_plane & -db_plane # pyright: ignore[reportOperatorIssue]
+
+    ddrumbound = openmc.ZCylinder(x0=c[0], y0=c[1], r=drumr)
+    didrumbound = openmc.ZCylinder(x0=c[0], y0=c[1], r=drumir)
+    dabound = openmc.ZCylinder(x0=c[0], y0=c[1], r=drumiar)
+
+    dcladbound = -ddrumbound & +didrumbound
+    dabsorb_bound = darc & +dabound & -didrumbound
+    dreflect_bound = -didrumbound & ~dabsorb_bound
+
+    drum_boundl.append(-ddrumbound)
+    drum_clad_boundl.append(dcladbound)
+    absorb_boundl.append(dabsorb_bound)
+    reflect_boundl.append(dreflect_bound)
+
+    # Combined outer boundary to exclude from the surrounding reflector cell
+    drum_bound = -ddrumbound if n == 0 else (drum_bound | -ddrumbound) # pyright: ignore[reportOperatorIssue, reportPossiblyUnboundVariable]
+
+if np.ndim(args.Drumrotation) == 0:
+    rotations_deg = [float(args.Drumrotation)] * len(drum_centers)
+else:
+    rotations_deg = [float(a) for a in args.Drumrotation]
+    assert len(rotations_deg) == len(drum_centers), "Drumrotation count must match dcount"
+
+Drum_cells = []
+for idx, (c, rb, ab, cb, rot_deg) in enumerate(
+    zip(drum_centers, reflect_boundl, absorb_boundl, drum_clad_boundl, rotations_deg)
+):
+    pivot = (c[0], c[1], 0.0)
+    d0 = 90.0  # 0 deg rotation points absorber directly toward core center
+    dr = np.degrees(np.arctan2(-c[1], -c[0]))
+    angles = (0.0, 0.0, rot_deg + (dr - d0))
+
+    rb_rot = rb.rotate(angles, pivot=pivot)
+    ab_rot = ab.rotate(angles, pivot=pivot)
+
+    Drum_reflect_cell = openmc.Cell(name=f"Drum_reflector_{idx+1}", fill=beo, region=rb_rot)
+    Drum_absorb_cell = openmc.Cell(name=f"Drum_absorber_{idx+1}", fill=b4c, region=ab_rot)
+    Drum_clad_cell = openmc.Cell(name=f"Drum_cladding_{idx+1}", fill=inc, region=cb)
+
+    Drum_cells.extend([Drum_reflect_cell, Drum_absorb_cell, Drum_clad_cell])
+
+
+
 
 # Depends on layout_type
 max_pin_r = reactr - pinr - coolmin #How far "away" can pin centers be from the center
@@ -188,7 +288,7 @@ for idx, (px, py) in enumerate(pin_centers, start=1):
 print(f'{len(pin_centers)} pins ({len(pin_cells)} cells) created')
 
 # Create Reflector and Coolant Cells
-Reflectreg = -reflectbound & +coolant_bound & hreg
+Reflectreg = -reflectbound & +coolant_bound & hreg & ~drum_bound # pyright: ignore[reportOperatorIssue, reportPossiblyUnboundVariable]
 Coolantreg = -coolant_bound & hreg
 
 for reg in clad_regs:
@@ -197,7 +297,7 @@ for reg in clad_regs:
 Coolant_cell = openmc.Cell(name="coolant", fill=hexe, region=Coolantreg)
 Reflect_cell = openmc.Cell(name="Reflector", fill=beo, region=Reflectreg)
 
-geo = openmc.Geometry([Coolant_cell, Reflect_cell] + pin_cells)
+geo = openmc.Geometry([Coolant_cell, Reflect_cell] + pin_cells + Drum_cells)
 geo.export_to_xml()
 
 #Look at geometry
@@ -213,7 +313,8 @@ plot1.colors = {
     hexe: (181, 31, 98),
     more: (173, 179, 174),
     beo: (230, 240, 232),
-    # ne: (224, 139, 20)
+    b4c: (43, 42, 37),
+    inc: (184, 177, 173)
 }
 
 # Export to plots.xml and generate the image file
@@ -247,6 +348,7 @@ settings.export_to_xml()
 mod=openmc.Model(geometry=geo,materials=mats,settings=settings)
 mod.export_to_model_xml()
 
+'''
 try:
     openmc.run(geometry_debug=True,path_input="model.xml")
 
@@ -269,8 +371,8 @@ try:
     #Add to CSV
 
     #Setup arg list for use
-    argnames=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Layout"]
-    argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Layout]
+    argnames=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Pinlayout"]
+    argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Pinlayout]
     ps='report/results.csv'
     oe=False
     if Path(ps).exists():
@@ -299,8 +401,8 @@ try:
         writer.writerow(vdict)
 except Exception as error:
     #Setup arg list for use
-        argnames=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Layout"]
-        argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Layout]
+        argnames=["Temp","Pressure","Enrichment","Thickness","Radius","Height","Pinr","Fuelr","Pinpitch","Mincoolant","Pinlayout"]
+        argl=[args.Temp,args.Pressure,args.Enrichment,args.Thickness,args.Radius,args.Height,args.Pinr,args.Fuelr,args.Pinpitch,args.Mincoolant,args.Pinlayout]
         ps='report/results.csv'
         oe=False
         if Path(ps).exists():
@@ -328,7 +430,7 @@ except Exception as error:
                 writer.writeheader()
             writer.writerow(vdict)
         raise RuntimeError(f"OpenMC run failure: {error}")
-        
+'''    
 
 
 

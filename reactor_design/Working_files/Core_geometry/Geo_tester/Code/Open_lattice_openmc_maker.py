@@ -335,7 +335,6 @@ print(f'{len(pin_centers)} pins ({len(pin_cells)} cells) created')
 # Create Reflector and Coolant Cells
 
 #Create the regions
-assert drum_bound is openmc.Region
 Reflectreg = -reflectbound & +coolant_bound & hreg
 if drum_bound is not None:
     Reflectreg &= ~drum_bound

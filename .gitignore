@@ -15,5 +15,6 @@ reactor_design/Working_files/Core_geometry/Geo_tester/Code/**/*.png
 reactor_design/Working_files/Core_geometry/Geo_tester/Code/**/*.h5
 reactor_design/Working_files/Core_geometry/Geo_tester/Code/**/*.out
 reactor_design/Working_files/Core_geometry/Geo_tester/Code/**/*.csv
+reactor_design/Working_files/Core_geometry/Geo_tester/Code/report/*.csv
 ._*
 .DS_Store

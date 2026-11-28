@@ -79,7 +79,7 @@ controlgroup.add_argument("-dc","--Drumcount",type=float,default=6,help='Number 
 controlgroup.add_argument("-dd","--Drumdiameter",type=float,default=15,help='Diameter of Control Drums, default 15')
 controlgroup.add_argument("-dad","--Drumabsorberdiameter",type=float,default=13,help='Diameter of Absorber/reflector in control drum, default 13')
 controlgroup.add_argument("-daid","--Drumabsorberinnerdiameter",type=float,default=11,help='Inner diameter(minimum) of absorber, default 11')
-controlgroup.add_argument('-dr',"--Drumrotation",type=float,nargs='+',default=0,help='''Rotation(s) of Control Drums in degrees CCW, with 0 as reflector facing inward. 
+controlgroup.add_argument('-dr',"--Drumrotation",type=float,nargs='+',default=0,help='''Rotation(s) of Control Drums in degrees CCW, with 0 as reflector facing directly away from core. 
                                                                                         If one value is given, all drums rotated same amount, or give individual rotations sequentially for all drums.''')
 args=parser.parse_args()
 
@@ -224,7 +224,7 @@ for idx, (c, rb, ab, cb, rot_deg) in enumerate(
     zip(drum_centers, reflect_boundl, absorb_boundl, drum_clad_boundl, rotations_deg)
 ):
     pivot = (c[0], c[1], 0.0)
-    d0 = 90.0  # 0 deg rotation points absorber directly toward core center
+    d0 =-90.0
     dr = np.degrees(np.arctan2(-c[1], -c[0]))
     angles = (0.0, 0.0, rot_deg + (dr - d0))
 
@@ -348,7 +348,7 @@ settings.export_to_xml()
 mod=openmc.Model(geometry=geo,materials=mats,settings=settings)
 mod.export_to_model_xml()
 
-
+'''
 try:
     openmc.run(geometry_debug=True,path_input="model.xml")
 
@@ -431,7 +431,7 @@ except Exception as error:
             writer.writerow(vdict)
         raise RuntimeError(f"OpenMC run failure: {error}")
    
-
+'''
 
 
 
